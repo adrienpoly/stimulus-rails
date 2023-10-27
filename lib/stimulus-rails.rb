@@ -1,9 +1,11 @@
 module StimulusRails
   class Configuration
-    attr_accessor :disable_eslint
+    attr_accessor :disable_eslint, :paths, :output_path
 
     def initialize
       @disable_eslint = false
+      @paths = ["app/javascript/controllers"]
+      @output_path = "app/javascript/controllers"
     end
   end
 

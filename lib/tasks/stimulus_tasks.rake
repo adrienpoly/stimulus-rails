@@ -46,11 +46,13 @@ namespace :stimulus do
 
   namespace :manifest do
     task display: :environment do
-      puts Stimulus::Manifest.generate_from(Rails.root.join("app/javascript/controllers"))
+      absolute_paths = StimulusRails.configuration.paths.map { |path| Rails.root.join(path) }
+      puts Stimulus::Manifest.generate_from(absolute_paths)
     end
 
     task update: :environment do
-      manifest = Stimulus::Manifest.generate_from(Rails.root.join("app/javascript/controllers"))
+      absolute_paths = StimulusRails.configuration.paths.map { |path| Rails.root.join(path) }
+      manifest = Stimulus::Manifest.generate_from(absolute_paths)
 
       File.open(Rails.root.join("app/javascript/controllers/index.js"), "w+") do |index|
         index.puts manifest

@@ -1,10 +1,9 @@
-require "stimulus/configuration"
-
 module Stimulus::Manifest
   class << self
-    def generate_from(controllers_path)
-      (manifest_header + manifest_controllers(controllers_path)).join("\n")
+    def generate_from(controllers_paths, output_path = "app/javascript/controllers")
+      (manifest_header + manifest_controllers(controllers_paths, output_path) + manifest_footer).join("\n")
     end
+
 
     private
 
@@ -19,20 +18,38 @@ module Stimulus::Manifest
       header << ""
     end
 
-    def manifest_controllers(controllers_path)
-      extract_controllers_from(controllers_path).collect do |controller_path|
-        import_and_register_controller(controllers_path, controller_path)
-      end
+    def manifest_footer
+      footer = []
+      footer << <<~JS
+                requestAnimationFrame(() => {
+                  document.documentElement.setAttribute('stimulus-connected', '')
+                })
+                JS
     end
 
-    def import_and_register_controller(controllers_path, controller_path)
+    def manifest_controllers(controllers_paths, output_path)
+      controllers_paths = [controllers_paths] unless controllers_paths.is_a?(Array)
+
+      controllers_paths.collect do |controllers_path|
+        extract_controllers_from(controllers_path).collect do |controller_path|
+          import_and_register_controller(controllers_path, controller_path, output_path)
+        end
+      end.flatten
+    end
+
+    def import_and_register_controller(controllers_path, controller_path, output_path)
       controller_path = controller_path.relative_path_from(controllers_path).to_s
       module_path = controller_path.split('.').first
       controller_class_name = module_path.underscore.camelize.gsub(/::/, "__")
       tag_name = module_path.remove(/_controller/).gsub(/_/, "-").gsub(/\//, "--")
 
+      absolute_output_path = Pathname.new(output_path).expand_path
+      absolute_controllers_path = Pathname.new(controllers_path).expand_path
+
+      relative_path = absolute_controllers_path.relative_path_from(absolute_output_path)
+
       <<~JS
-        import #{controller_class_name} from "./#{module_path}"
+        import #{controller_class_name} from "#{relative_path}/#{module_path}"
         application.register("#{tag_name}", #{controller_class_name})
       JS
     end
